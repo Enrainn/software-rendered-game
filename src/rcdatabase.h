@@ -41,8 +41,8 @@ typedef uint32 rcScreenAABB;
 
 /* ChunkType enumerated type */
 typedef enum {
-    CHUNK_COLORED = 0,
-    CHUNK_TEXTURED = 1
+    RC_CHUNK_COLORED = 0,
+    RC_CHUNK_TEXTURED = 1
 } rcChunkType;
 
 #include "rctypedef.h"
@@ -50,44 +50,36 @@ typedef enum {
 /* Constructor/Destructor hooks. */
 typedef void (*rcRootCallbackType)(rcRoot);
 extern rcRootCallbackType rcRootConstructorCallback;
-extern rcRootCallbackType rcRootDestructorCallback;
 typedef void (*rcScreenVertexCallbackType)(rcScreenVertex);
 extern rcScreenVertexCallbackType rcScreenVertexConstructorCallback;
 extern rcScreenVertexCallbackType rcScreenVertexDestructorCallback;
 typedef void (*rcChunkCallbackType)(rcChunk);
 extern rcChunkCallbackType rcChunkConstructorCallback;
-extern rcChunkCallbackType rcChunkDestructorCallback;
 typedef void (*rcStripCallbackType)(rcStrip);
 extern rcStripCallbackType rcStripConstructorCallback;
 extern rcStripCallbackType rcStripDestructorCallback;
 typedef void (*rcScreenAABBCallbackType)(rcScreenAABB);
 extern rcScreenAABBCallbackType rcScreenAABBConstructorCallback;
-extern rcScreenAABBCallbackType rcScreenAABBDestructorCallback;
 
 /*----------------------------------------------------------------------------------------
   Root structure
 ----------------------------------------------------------------------------------------*/
 struct rcRootType_ {
     uint32 hash; /* This depends only on the structure of the database */
-    rcRoot firstFreeRoot;
     uint32 usedRoot, allocatedRoot;
     uint32 usedRootChunk, allocatedRootChunk, freeRootChunk;
     uint32 usedRootStrip, allocatedRootStrip, freeRootStrip;
     rcScreenVertex firstFreeScreenVertex;
     uint32 usedScreenVertex, allocatedScreenVertex;
-    rcChunk firstFreeChunk;
     uint32 usedChunk, allocatedChunk;
     rcStrip firstFreeStrip;
     uint32 usedStrip, allocatedStrip;
     uint32 usedStripChunk, allocatedStripChunk, freeStripChunk;
-    rcScreenAABB firstFreeScreenAABB;
     uint32 usedScreenAABB, allocatedScreenAABB;
 };
 extern struct rcRootType_ rcRootData;
 
 utInlineC uint32 rcHash(void) {return rcRootData.hash;}
-utInlineC rcRoot rcFirstFreeRoot(void) {return rcRootData.firstFreeRoot;}
-utInlineC void rcSetFirstFreeRoot(rcRoot value) {rcRootData.firstFreeRoot = (value);}
 utInlineC uint32 rcUsedRoot(void) {return rcRootData.usedRoot;}
 utInlineC uint32 rcAllocatedRoot(void) {return rcRootData.allocatedRoot;}
 utInlineC void rcSetUsedRoot(uint32 value) {rcRootData.usedRoot = value;}
@@ -110,8 +102,6 @@ utInlineC uint32 rcUsedScreenVertex(void) {return rcRootData.usedScreenVertex;}
 utInlineC uint32 rcAllocatedScreenVertex(void) {return rcRootData.allocatedScreenVertex;}
 utInlineC void rcSetUsedScreenVertex(uint32 value) {rcRootData.usedScreenVertex = value;}
 utInlineC void rcSetAllocatedScreenVertex(uint32 value) {rcRootData.allocatedScreenVertex = value;}
-utInlineC rcChunk rcFirstFreeChunk(void) {return rcRootData.firstFreeChunk;}
-utInlineC void rcSetFirstFreeChunk(rcChunk value) {rcRootData.firstFreeChunk = (value);}
 utInlineC uint32 rcUsedChunk(void) {return rcRootData.usedChunk;}
 utInlineC uint32 rcAllocatedChunk(void) {return rcRootData.allocatedChunk;}
 utInlineC void rcSetUsedChunk(uint32 value) {rcRootData.usedChunk = value;}
@@ -128,8 +118,6 @@ utInlineC uint32 rcFreeStripChunk(void) {return rcRootData.freeStripChunk;}
 utInlineC void rcSetUsedStripChunk(uint32 value) {rcRootData.usedStripChunk = value;}
 utInlineC void rcSetAllocatedStripChunk(uint32 value) {rcRootData.allocatedStripChunk = value;}
 utInlineC void rcSetFreeStripChunk(int32 value) {rcRootData.freeStripChunk = value;}
-utInlineC rcScreenAABB rcFirstFreeScreenAABB(void) {return rcRootData.firstFreeScreenAABB;}
-utInlineC void rcSetFirstFreeScreenAABB(rcScreenAABB value) {rcRootData.firstFreeScreenAABB = (value);}
 utInlineC uint32 rcUsedScreenAABB(void) {return rcRootData.usedScreenAABB;}
 utInlineC uint32 rcAllocatedScreenAABB(void) {return rcRootData.allocatedScreenAABB;}
 utInlineC void rcSetUsedScreenAABB(uint32 value) {rcRootData.usedScreenAABB = value;}
@@ -208,7 +196,6 @@ struct rcRootFields {
     uint32 *NumStrip;
     rcStrip *Strip;
     uint32 *UsedStrip;
-    rcRoot *FreeList;
 };
 extern struct rcRootFields rcRoots;
 
@@ -264,33 +251,25 @@ utInlineC void rcRootSetiStrip(rcRoot Root, uint32 x, rcStrip value) {
     rcRoots.Strip[rcRootGetStripIndex_(Root) + rcRootCheckStripIndex(Root, (x))] = value;}
 utInlineC uint32 rcRootGetUsedStrip(rcRoot Root) {return rcRoots.UsedStrip[rcRoot2ValidIndex(Root)];}
 utInlineC void rcRootSetUsedStrip(rcRoot Root, uint32 value) {rcRoots.UsedStrip[rcRoot2ValidIndex(Root)] = value;}
-utInlineC rcRoot rcRootGetFreeList(rcRoot Root) {return rcRoots.FreeList[rcRoot2ValidIndex(Root)];}
-utInlineC void rcRootSetFreeList(rcRoot Root, rcRoot value) {rcRoots.FreeList[rcRoot2ValidIndex(Root)] = value;}
 utInlineC void rcRootSetConstructorCallback(void(*func)(rcRoot)) {rcRootConstructorCallback = func;}
 utInlineC rcRootCallbackType rcRootGetConstructorCallback(void) {return rcRootConstructorCallback;}
-utInlineC void rcRootSetDestructorCallback(void(*func)(rcRoot)) {rcRootDestructorCallback = func;}
-utInlineC rcRootCallbackType rcRootGetDestructorCallback(void) {return rcRootDestructorCallback;}
-utInlineC rcRoot rcRootNextFree(rcRoot Root) {return ((rcRoot *)(void *)(rcRoots.FreeList))[rcRoot2ValidIndex(Root)];}
-utInlineC void rcRootSetNextFree(rcRoot Root, rcRoot value) {
-    ((rcRoot *)(void *)(rcRoots.FreeList))[rcRoot2ValidIndex(Root)] = value;}
-utInlineC void rcRootFree(rcRoot Root) {
-    rcRootFreeChunks(Root);
-    rcRootFreeStrips(Root);
-    rcRootSetNextFree(Root, rcRootData.firstFreeRoot);
-    rcSetFirstFreeRoot(Root);}
-void rcRootDestroy(rcRoot Root);
+utInlineC rcRoot rcFirstRoot(void) {return rcRootData.usedRoot == 1? rcRootNull : rcIndex2Root(1);}
+utInlineC rcRoot rcLastRoot(void) {return rcRootData.usedRoot == 1? rcRootNull :
+    rcIndex2Root(rcRootData.usedRoot - 1);}
+utInlineC rcRoot rcNextRoot(rcRoot Root) {return rcRoot2ValidIndex(Root) + 1 == rcRootData.usedRoot? rcRootNull :
+    Root + 1;}
+utInlineC rcRoot rcPrevRoot(rcRoot Root) {return rcRoot2ValidIndex(Root) == 1? rcRootNull : Root - 1;}
+#define rcForeachRoot(var) \
+    for(var = rcIndex2Root(1); rcRoot2Index(var) != rcRootData.usedRoot; var++)
+#define rcEndRoot
+utInlineC void rcRootFreeAll(void) {rcSetUsedRoot(1); rcSetUsedRootChunk(0); rcSetUsedRootStrip(0);}
 utInlineC rcRoot rcRootAllocRaw(void) {
     rcRoot Root;
-    if(rcRootData.firstFreeRoot != rcRootNull) {
-        Root = rcRootData.firstFreeRoot;
-        rcSetFirstFreeRoot(rcRootNextFree(Root));
-    } else {
-        if(rcRootData.usedRoot == rcRootData.allocatedRoot) {
-            rcRootAllocMore();
-        }
-        Root = rcIndex2Root(rcRootData.usedRoot);
-        rcSetUsedRoot(rcUsedRoot() + 1);
+    if(rcRootData.usedRoot == rcRootData.allocatedRoot) {
+        rcRootAllocMore();
     }
+    Root = rcIndex2Root(rcRootData.usedRoot);
+    rcSetUsedRoot(rcUsedRoot() + 1);
     return Root;}
 utInlineC rcRoot rcRootAlloc(void) {
     rcRoot Root = rcRootAllocRaw();
@@ -303,7 +282,6 @@ utInlineC rcRoot rcRootAlloc(void) {
     rcRootSetNumStrip(Root, 0);
     rcRootSetNumStrip(Root, 0);
     rcRootSetUsedStrip(Root, 0);
-    rcRootSetFreeList(Root, rcRootNull);
     if(rcRootConstructorCallback != NULL) {
         rcRootConstructorCallback(Root);
     }
@@ -388,7 +366,7 @@ struct rcChunkFields {
     float *Z2;
     float *Inv_w2;
     uint32 *Color;
-    Texture *Texture;
+    TexturePtr *Texture;
     Vec2 *Uv0;
     Vec2 *Uv1;
     Vec2 *Uv2;
@@ -432,8 +410,8 @@ utInlineC float rcChunkGetInv_w2(rcChunk Chunk) {return rcChunks.Inv_w2[rcChunk2
 utInlineC void rcChunkSetInv_w2(rcChunk Chunk, float value) {rcChunks.Inv_w2[rcChunk2ValidIndex(Chunk)] = value;}
 utInlineC uint32 rcChunkGetColor(rcChunk Chunk) {return rcChunks.Color[rcChunk2ValidIndex(Chunk)];}
 utInlineC void rcChunkSetColor(rcChunk Chunk, uint32 value) {rcChunks.Color[rcChunk2ValidIndex(Chunk)] = value;}
-utInlineC Texture rcChunkGetTexture(rcChunk Chunk) {return rcChunks.Texture[rcChunk2ValidIndex(Chunk)];}
-utInlineC void rcChunkSetTexture(rcChunk Chunk, Texture value) {rcChunks.Texture[rcChunk2ValidIndex(Chunk)] = value;}
+utInlineC TexturePtr rcChunkGetTexture(rcChunk Chunk) {return rcChunks.Texture[rcChunk2ValidIndex(Chunk)];}
+utInlineC void rcChunkSetTexture(rcChunk Chunk, TexturePtr value) {rcChunks.Texture[rcChunk2ValidIndex(Chunk)] = value;}
 utInlineC Vec2 rcChunkGetUv0(rcChunk Chunk) {return rcChunks.Uv0[rcChunk2ValidIndex(Chunk)];}
 utInlineC void rcChunkSetUv0(rcChunk Chunk, Vec2 value) {rcChunks.Uv0[rcChunk2ValidIndex(Chunk)] = value;}
 utInlineC Vec2 rcChunkGetUv1(rcChunk Chunk) {return rcChunks.Uv1[rcChunk2ValidIndex(Chunk)];}
@@ -452,31 +430,27 @@ utInlineC uint32 rcChunkGetStripIndex(rcChunk Chunk) {return rcChunks.StripIndex
 utInlineC void rcChunkSetStripIndex(rcChunk Chunk, uint32 value) {rcChunks.StripIndex[rcChunk2ValidIndex(Chunk)] = value;}
 utInlineC void rcChunkSetConstructorCallback(void(*func)(rcChunk)) {rcChunkConstructorCallback = func;}
 utInlineC rcChunkCallbackType rcChunkGetConstructorCallback(void) {return rcChunkConstructorCallback;}
-utInlineC void rcChunkSetDestructorCallback(void(*func)(rcChunk)) {rcChunkDestructorCallback = func;}
-utInlineC rcChunkCallbackType rcChunkGetDestructorCallback(void) {return rcChunkDestructorCallback;}
-utInlineC rcChunk rcChunkNextFree(rcChunk Chunk) {return ((rcChunk *)(void *)(rcChunks.Root))[rcChunk2ValidIndex(Chunk)];}
-utInlineC void rcChunkSetNextFree(rcChunk Chunk, rcChunk value) {
-    ((rcChunk *)(void *)(rcChunks.Root))[rcChunk2ValidIndex(Chunk)] = value;}
-utInlineC void rcChunkFree(rcChunk Chunk) {
-    rcChunkSetNextFree(Chunk, rcRootData.firstFreeChunk);
-    rcSetFirstFreeChunk(Chunk);}
-void rcChunkDestroy(rcChunk Chunk);
+utInlineC rcChunk rcFirstChunk(void) {return rcRootData.usedChunk == 1? rcChunkNull : rcIndex2Chunk(1);}
+utInlineC rcChunk rcLastChunk(void) {return rcRootData.usedChunk == 1? rcChunkNull :
+    rcIndex2Chunk(rcRootData.usedChunk - 1);}
+utInlineC rcChunk rcNextChunk(rcChunk Chunk) {return rcChunk2ValidIndex(Chunk) + 1 == rcRootData.usedChunk? rcChunkNull :
+    Chunk + 1;}
+utInlineC rcChunk rcPrevChunk(rcChunk Chunk) {return rcChunk2ValidIndex(Chunk) == 1? rcChunkNull : Chunk - 1;}
+#define rcForeachChunk(var) \
+    for(var = rcIndex2Chunk(1); rcChunk2Index(var) != rcRootData.usedChunk; var++)
+#define rcEndChunk
+utInlineC void rcChunkFreeAll(void) {rcSetUsedChunk(1);}
 utInlineC rcChunk rcChunkAllocRaw(void) {
     rcChunk Chunk;
-    if(rcRootData.firstFreeChunk != rcChunkNull) {
-        Chunk = rcRootData.firstFreeChunk;
-        rcSetFirstFreeChunk(rcChunkNextFree(Chunk));
-    } else {
-        if(rcRootData.usedChunk == rcRootData.allocatedChunk) {
-            rcChunkAllocMore();
-        }
-        Chunk = rcIndex2Chunk(rcRootData.usedChunk);
-        rcSetUsedChunk(rcUsedChunk() + 1);
+    if(rcRootData.usedChunk == rcRootData.allocatedChunk) {
+        rcChunkAllocMore();
     }
+    Chunk = rcIndex2Chunk(rcRootData.usedChunk);
+    rcSetUsedChunk(rcUsedChunk() + 1);
     return Chunk;}
 utInlineC rcChunk rcChunkAlloc(void) {
     rcChunk Chunk = rcChunkAllocRaw();
-    rcChunkSetType(Chunk, CHUNK_COLORED);
+    rcChunkSetType(Chunk, RC_CHUNK_COLORED);
     rcChunkSetDepth_sort_key(Chunk, 0);
     rcChunkSetX0(Chunk, 0);
     rcChunkSetY0(Chunk, 0);
@@ -492,9 +466,9 @@ utInlineC rcChunk rcChunkAlloc(void) {
     rcChunkSetInv_w2(Chunk, 0);
     rcChunkSetColor(Chunk, 0);
     rcChunkSetTexture(Chunk, NULL);
-    rcChunkSetUv0(Chunk, {0});
-    rcChunkSetUv1(Chunk, {0});
-    rcChunkSetUv2(Chunk, {0});
+    rcChunkSetUv0(Chunk, (Vec2){0});
+    rcChunkSetUv1(Chunk,  (Vec2){0});
+    rcChunkSetUv2(Chunk,  (Vec2){0});
     rcChunkSetRoot(Chunk, rcRootNull);
     rcChunkSetRootIndex(Chunk, UINT32_MAX);
     rcChunkSetBoundsScreenAABB(Chunk, rcScreenAABBNull);
@@ -620,27 +594,23 @@ utInlineC rcChunk rcScreenAABBGetCachedChunk(rcScreenAABB ScreenAABB) {return rc
 utInlineC void rcScreenAABBSetCachedChunk(rcScreenAABB ScreenAABB, rcChunk value) {rcScreenAABBs.CachedChunk[rcScreenAABB2ValidIndex(ScreenAABB)] = value;}
 utInlineC void rcScreenAABBSetConstructorCallback(void(*func)(rcScreenAABB)) {rcScreenAABBConstructorCallback = func;}
 utInlineC rcScreenAABBCallbackType rcScreenAABBGetConstructorCallback(void) {return rcScreenAABBConstructorCallback;}
-utInlineC void rcScreenAABBSetDestructorCallback(void(*func)(rcScreenAABB)) {rcScreenAABBDestructorCallback = func;}
-utInlineC rcScreenAABBCallbackType rcScreenAABBGetDestructorCallback(void) {return rcScreenAABBDestructorCallback;}
-utInlineC rcScreenAABB rcScreenAABBNextFree(rcScreenAABB ScreenAABB) {return ((rcScreenAABB *)(void *)(rcScreenAABBs.CachedChunk))[rcScreenAABB2ValidIndex(ScreenAABB)];}
-utInlineC void rcScreenAABBSetNextFree(rcScreenAABB ScreenAABB, rcScreenAABB value) {
-    ((rcScreenAABB *)(void *)(rcScreenAABBs.CachedChunk))[rcScreenAABB2ValidIndex(ScreenAABB)] = value;}
-utInlineC void rcScreenAABBFree(rcScreenAABB ScreenAABB) {
-    rcScreenAABBSetNextFree(ScreenAABB, rcRootData.firstFreeScreenAABB);
-    rcSetFirstFreeScreenAABB(ScreenAABB);}
-void rcScreenAABBDestroy(rcScreenAABB ScreenAABB);
+utInlineC rcScreenAABB rcFirstScreenAABB(void) {return rcRootData.usedScreenAABB == 1? rcScreenAABBNull : rcIndex2ScreenAABB(1);}
+utInlineC rcScreenAABB rcLastScreenAABB(void) {return rcRootData.usedScreenAABB == 1? rcScreenAABBNull :
+    rcIndex2ScreenAABB(rcRootData.usedScreenAABB - 1);}
+utInlineC rcScreenAABB rcNextScreenAABB(rcScreenAABB ScreenAABB) {return rcScreenAABB2ValidIndex(ScreenAABB) + 1 == rcRootData.usedScreenAABB? rcScreenAABBNull :
+    ScreenAABB + 1;}
+utInlineC rcScreenAABB rcPrevScreenAABB(rcScreenAABB ScreenAABB) {return rcScreenAABB2ValidIndex(ScreenAABB) == 1? rcScreenAABBNull : ScreenAABB - 1;}
+#define rcForeachScreenAABB(var) \
+    for(var = rcIndex2ScreenAABB(1); rcScreenAABB2Index(var) != rcRootData.usedScreenAABB; var++)
+#define rcEndScreenAABB
+utInlineC void rcScreenAABBFreeAll(void) {rcSetUsedScreenAABB(1);}
 utInlineC rcScreenAABB rcScreenAABBAllocRaw(void) {
     rcScreenAABB ScreenAABB;
-    if(rcRootData.firstFreeScreenAABB != rcScreenAABBNull) {
-        ScreenAABB = rcRootData.firstFreeScreenAABB;
-        rcSetFirstFreeScreenAABB(rcScreenAABBNextFree(ScreenAABB));
-    } else {
-        if(rcRootData.usedScreenAABB == rcRootData.allocatedScreenAABB) {
-            rcScreenAABBAllocMore();
-        }
-        ScreenAABB = rcIndex2ScreenAABB(rcRootData.usedScreenAABB);
-        rcSetUsedScreenAABB(rcUsedScreenAABB() + 1);
+    if(rcRootData.usedScreenAABB == rcRootData.allocatedScreenAABB) {
+        rcScreenAABBAllocMore();
     }
+    ScreenAABB = rcIndex2ScreenAABB(rcRootData.usedScreenAABB);
+    rcSetUsedScreenAABB(rcUsedScreenAABB() + 1);
     return ScreenAABB;}
 utInlineC rcScreenAABB rcScreenAABBAlloc(void) {
     rcScreenAABB ScreenAABB = rcScreenAABBAllocRaw();

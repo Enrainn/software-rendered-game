@@ -40,10 +40,11 @@ int main(int argc, char **argv)
     }
 
     nob_cmd_append(&cmd, "-std=c11");
-    nob_cmd_append(&cmd, "-Wall", "-Wextra", "-Wno-unused-parameter");
+    nob_cmd_append(&cmd, "-Wall", "-Wextra", "-Wno-unused-parameter", "-Wno-unused-function");
 
     // Source files
     nob_cmd_append(&cmd,
+        SRC_FOLDER"rcdatabase.c",
         SRC_FOLDER"main.c",
         SRC_FOLDER"display.c",
         SRC_FOLDER"camera.c",
@@ -58,12 +59,14 @@ int main(int argc, char **argv)
         SRC_FOLDER"hud.c",
         SRC_FOLDER"arena.c",
         SRC_FOLDER"player.c",
-        SRC_FOLDER"physics.c"
+        SRC_FOLDER"physics.c",
+        SRC_FOLDER"libddutil.a"
     );
-
+/*
     if (nob_file_exists(SRC_FOLDER"rcdatabase.c")) {
         nob_cmd_append(&cmd, SRC_FOLDER"rcdatabase.c");
     }
+    */
 
     // Include path
     nob_cmd_append(&cmd, "-I"SRC_FOLDER);

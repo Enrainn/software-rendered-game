@@ -16,44 +16,12 @@ struct rcScreenAABBFields rcScreenAABBs;
   Constructor/Destructor hooks.
 ----------------------------------------------------------------------------------------*/
 rcRootCallbackType rcRootConstructorCallback;
-rcRootCallbackType rcRootDestructorCallback;
 rcScreenVertexCallbackType rcScreenVertexConstructorCallback;
 rcScreenVertexCallbackType rcScreenVertexDestructorCallback;
 rcChunkCallbackType rcChunkConstructorCallback;
-rcChunkCallbackType rcChunkDestructorCallback;
 rcStripCallbackType rcStripConstructorCallback;
 rcStripCallbackType rcStripDestructorCallback;
 rcScreenAABBCallbackType rcScreenAABBConstructorCallback;
-rcScreenAABBCallbackType rcScreenAABBDestructorCallback;
-
-/*----------------------------------------------------------------------------------------
-  Destroy Root including everything in it. Remove from parents.
-----------------------------------------------------------------------------------------*/
-void rcRootDestroy(
-    rcRoot Root)
-{
-    rcChunk Chunk_;
-    uint32 xChunk;
-    rcStrip Strip_;
-    uint32 xStrip;
-
-    if(rcRootDestructorCallback != NULL) {
-        rcRootDestructorCallback(Root);
-    }
-    for(xChunk = 0; xChunk < rcRootGetUsedChunk(Root); xChunk++) {
-        Chunk_ = rcRootGetiChunk(Root, xChunk);
-        if(Chunk_ != rcChunkNull) {
-            rcChunkSetRoot(Chunk_, rcRootNull);
-        }
-    }
-    for(xStrip = 0; xStrip < rcRootGetUsedStrip(Root); xStrip++) {
-        Strip_ = rcRootGetiStrip(Root, xStrip);
-        if(Strip_ != rcStripNull) {
-            rcStripSetRoot(Strip_, rcRootNull);
-        }
-    }
-    rcRootFree(Root);
-}
 
 /*----------------------------------------------------------------------------------------
   Default constructor wrapper for the database manager.
@@ -66,22 +34,12 @@ static uint64 allocRoot(void)
 }
 
 /*----------------------------------------------------------------------------------------
-  Destructor wrapper for the database manager.
-----------------------------------------------------------------------------------------*/
-static void destroyRoot(
-    uint64 objectIndex)
-{
-    rcRootDestroy(rcIndex2Root((uint32)objectIndex));
-}
-
-/*----------------------------------------------------------------------------------------
   Allocate the field arrays of Root.
 ----------------------------------------------------------------------------------------*/
 static void allocRoots(void)
 {
     rcSetAllocatedRoot(2);
     rcSetUsedRoot(1);
-    rcSetFirstFreeRoot(rcRootNull);
     rcRoots.Frame_index = utNewAInitFirst(uint32, (rcAllocatedRoot()));
     rcRoots.ChunkIndex_ = utNewAInitFirst(uint32, (rcAllocatedRoot()));
     rcRoots.NumChunk = utNewAInitFirst(uint32, (rcAllocatedRoot()));
@@ -97,7 +55,6 @@ static void allocRoots(void)
     rcSetFreeRootStrip(0);
     rcRoots.Strip = utNewAInitFirst(rcStrip, rcAllocatedRootStrip());
     rcRoots.UsedStrip = utNewAInitFirst(uint32, (rcAllocatedRoot()));
-    rcRoots.FreeList = utNewAInitFirst(rcRoot, (rcAllocatedRoot()));
 }
 
 /*----------------------------------------------------------------------------------------
@@ -113,7 +70,6 @@ static void reallocRoots(
     utResizeArray(rcRoots.StripIndex_, (newSize));
     utResizeArray(rcRoots.NumStrip, (newSize));
     utResizeArray(rcRoots.UsedStrip, (newSize));
-    utResizeArray(rcRoots.FreeList, (newSize));
     rcSetAllocatedRoot(newSize);
 }
 
@@ -745,32 +701,6 @@ void rcShowScreenVertex(
 #endif
 
 /*----------------------------------------------------------------------------------------
-  Destroy Chunk including everything in it. Remove from parents.
-----------------------------------------------------------------------------------------*/
-void rcChunkDestroy(
-    rcChunk Chunk)
-{
-    rcScreenAABB BoundsScreenAABB_;
-    rcRoot owningRoot = rcChunkGetRoot(Chunk);
-    rcStrip owningStrip = rcChunkGetStrip(Chunk);
-
-    if(rcChunkDestructorCallback != NULL) {
-        rcChunkDestructorCallback(Chunk);
-    }
-    BoundsScreenAABB_ = rcChunkGetBoundsScreenAABB(Chunk);
-    if(BoundsScreenAABB_ != rcScreenAABBNull) {
-        rcScreenAABBSetCachedChunk(BoundsScreenAABB_, rcChunkNull);
-    }
-    if(owningRoot != rcRootNull) {
-        rcRootRemoveChunk(owningRoot, Chunk);
-    }
-    if(owningStrip != rcStripNull) {
-        rcStripRemoveChunk(owningStrip, Chunk);
-    }
-    rcChunkFree(Chunk);
-}
-
-/*----------------------------------------------------------------------------------------
   Default constructor wrapper for the database manager.
 ----------------------------------------------------------------------------------------*/
 static uint64 allocChunk(void)
@@ -781,22 +711,12 @@ static uint64 allocChunk(void)
 }
 
 /*----------------------------------------------------------------------------------------
-  Destructor wrapper for the database manager.
-----------------------------------------------------------------------------------------*/
-static void destroyChunk(
-    uint64 objectIndex)
-{
-    rcChunkDestroy(rcIndex2Chunk((uint32)objectIndex));
-}
-
-/*----------------------------------------------------------------------------------------
   Allocate the field arrays of Chunk.
 ----------------------------------------------------------------------------------------*/
 static void allocChunks(void)
 {
     rcSetAllocatedChunk(2);
     rcSetUsedChunk(1);
-    rcSetFirstFreeChunk(rcChunkNull);
     rcChunks.Type = utNewAInitFirst(rcChunkType, (rcAllocatedChunk()));
     rcChunks.Depth_sort_key = utNewAInitFirst(float, (rcAllocatedChunk()));
     rcChunks.X0 = utNewAInitFirst(float, (rcAllocatedChunk()));
@@ -812,7 +732,7 @@ static void allocChunks(void)
     rcChunks.Z2 = utNewAInitFirst(float, (rcAllocatedChunk()));
     rcChunks.Inv_w2 = utNewAInitFirst(float, (rcAllocatedChunk()));
     rcChunks.Color = utNewAInitFirst(uint32, (rcAllocatedChunk()));
-    rcChunks.Texture = utNewAInitFirst(Texture, (rcAllocatedChunk()));
+    rcChunks.Texture = utNewAInitFirst(TexturePtr, (rcAllocatedChunk()));
     rcChunks.Uv0 = utNewAInitFirst(Vec2, (rcAllocatedChunk()));
     rcChunks.Uv1 = utNewAInitFirst(Vec2, (rcAllocatedChunk()));
     rcChunks.Uv2 = utNewAInitFirst(Vec2, (rcAllocatedChunk()));
@@ -1268,23 +1188,6 @@ void rcShowStrip(
 #endif
 
 /*----------------------------------------------------------------------------------------
-  Destroy ScreenAABB including everything in it. Remove from parents.
-----------------------------------------------------------------------------------------*/
-void rcScreenAABBDestroy(
-    rcScreenAABB ScreenAABB)
-{
-    rcChunk owningCachedChunk = rcScreenAABBGetCachedChunk(ScreenAABB);
-
-    if(rcScreenAABBDestructorCallback != NULL) {
-        rcScreenAABBDestructorCallback(ScreenAABB);
-    }
-    if(owningCachedChunk != rcChunkNull) {
-        rcChunkSetBoundsScreenAABB(owningCachedChunk, rcScreenAABBNull);
-    }
-    rcScreenAABBFree(ScreenAABB);
-}
-
-/*----------------------------------------------------------------------------------------
   Default constructor wrapper for the database manager.
 ----------------------------------------------------------------------------------------*/
 static uint64 allocScreenAABB(void)
@@ -1295,22 +1198,12 @@ static uint64 allocScreenAABB(void)
 }
 
 /*----------------------------------------------------------------------------------------
-  Destructor wrapper for the database manager.
-----------------------------------------------------------------------------------------*/
-static void destroyScreenAABB(
-    uint64 objectIndex)
-{
-    rcScreenAABBDestroy(rcIndex2ScreenAABB((uint32)objectIndex));
-}
-
-/*----------------------------------------------------------------------------------------
   Allocate the field arrays of ScreenAABB.
 ----------------------------------------------------------------------------------------*/
 static void allocScreenAABBs(void)
 {
     rcSetAllocatedScreenAABB(2);
     rcSetUsedScreenAABB(1);
-    rcSetFirstFreeScreenAABB(rcScreenAABBNull);
     rcScreenAABBs.X_min = utNewAInitFirst(int32, (rcAllocatedScreenAABB()));
     rcScreenAABBs.X_max = utNewAInitFirst(int32, (rcAllocatedScreenAABB()));
     rcScreenAABBs.Y_min = utNewAInitFirst(int32, (rcAllocatedScreenAABB()));
@@ -1378,7 +1271,6 @@ void rcDatabaseStop(void)
     utFree(rcRoots.NumStrip);
     utFree(rcRoots.Strip);
     utFree(rcRoots.UsedStrip);
-    utFree(rcRoots.FreeList);
     utFree(rcScreenVertexs.X);
     utFree(rcScreenVertexs.Y);
     utFree(rcScreenVertexs.Z);
@@ -1432,14 +1324,14 @@ void rcDatabaseStart(void)
     if(!utInitialized()) {
         utStart();
     }
-    rcRootData.hash = 0xf3b9da1a;
-    rcModuleID = utRegisterModule("rc", false, rcHash(), 5, 52, 1, sizeof(struct rcRootType_),
+    rcRootData.hash = 0x3cbc77d0;
+    rcModuleID = utRegisterModule("rc", false, rcHash(), 5, 51, 1, sizeof(struct rcRootType_),
         &rcRootData, rcDatabaseStart, rcDatabaseStop);
     utRegisterEnum("ChunkType", 2);
-    utRegisterEntry("CHUNK_COLORED", 0);
-    utRegisterEntry("CHUNK_TEXTURED", 1);
-    utRegisterClass("Root", 10, &rcRootData.usedRoot, &rcRootData.allocatedRoot,
-        &rcRootData.firstFreeRoot, 9, 4, allocRoot, destroyRoot);
+    utRegisterEntry("RC_CHUNK_COLORED", 0);
+    utRegisterEntry("RC_CHUNK_TEXTURED", 1);
+    utRegisterClass("Root", 9, &rcRootData.usedRoot, &rcRootData.allocatedRoot,
+        NULL, 65535, 4, allocRoot, NULL);
     utRegisterField("Frame_index", &rcRoots.Frame_index, sizeof(uint32), UT_UINT, NULL);
     utRegisterField("ChunkIndex_", &rcRoots.ChunkIndex_, sizeof(uint32), UT_UINT, NULL);
     utSetFieldHidden();
@@ -1457,10 +1349,8 @@ void rcDatabaseStart(void)
     utRegisterArray(&rcRootData.usedRootStrip, &rcRootData.allocatedRootStrip,
         getRootStrips, allocRootStrips, rcCompactRootStrips);
     utRegisterField("UsedStrip", &rcRoots.UsedStrip, sizeof(uint32), UT_UINT, NULL);
-    utRegisterField("FreeList", &rcRoots.FreeList, sizeof(rcRoot), UT_POINTER, "Root");
-    utSetFieldHidden();
     utRegisterClass("ScreenVertex", 5, &rcRootData.usedScreenVertex, &rcRootData.allocatedScreenVertex,
-        &rcRootData.firstFreeScreenVertex, 14, 4, allocScreenVertex, destroyScreenVertex);
+        &rcRootData.firstFreeScreenVertex, 13, 4, allocScreenVertex, destroyScreenVertex);
     utRegisterField("X", &rcScreenVertexs.X, sizeof(float), UT_FLOAT, NULL);
     utRegisterField("Y", &rcScreenVertexs.Y, sizeof(float), UT_FLOAT, NULL);
     utRegisterField("Z", &rcScreenVertexs.Z, sizeof(float), UT_FLOAT, NULL);
@@ -1468,7 +1358,7 @@ void rcDatabaseStart(void)
     utRegisterField("FreeList", &rcScreenVertexs.FreeList, sizeof(rcScreenVertex), UT_POINTER, "ScreenVertex");
     utSetFieldHidden();
     utRegisterClass("Chunk", 24, &rcRootData.usedChunk, &rcRootData.allocatedChunk,
-        &rcRootData.firstFreeChunk, 34, 4, allocChunk, destroyChunk);
+        NULL, 65535, 4, allocChunk, NULL);
     utRegisterField("Type", &rcChunks.Type, sizeof(rcChunkType), UT_ENUM, "ChunkType");
     utRegisterField("Depth_sort_key", &rcChunks.Depth_sort_key, sizeof(float), UT_FLOAT, NULL);
     utRegisterField("X0", &rcChunks.X0, sizeof(float), UT_FLOAT, NULL);
@@ -1484,7 +1374,7 @@ void rcDatabaseStart(void)
     utRegisterField("Z2", &rcChunks.Z2, sizeof(float), UT_FLOAT, NULL);
     utRegisterField("Inv_w2", &rcChunks.Inv_w2, sizeof(float), UT_FLOAT, NULL);
     utRegisterField("Color", &rcChunks.Color, sizeof(uint32), UT_UINT, NULL);
-    utRegisterField("Texture", &rcChunks.Texture, sizeof(Texture), UT_TYPEDEF, NULL);
+    utRegisterField("Texture", &rcChunks.Texture, sizeof(TexturePtr), UT_TYPEDEF, NULL);
     utRegisterField("Uv0", &rcChunks.Uv0, sizeof(Vec2), UT_TYPEDEF, NULL);
     utRegisterField("Uv1", &rcChunks.Uv1, sizeof(Vec2), UT_TYPEDEF, NULL);
     utRegisterField("Uv2", &rcChunks.Uv2, sizeof(Vec2), UT_TYPEDEF, NULL);
@@ -1494,7 +1384,7 @@ void rcDatabaseStart(void)
     utRegisterField("Strip", &rcChunks.Strip, sizeof(rcStrip), UT_POINTER, "Strip");
     utRegisterField("StripIndex", &rcChunks.StripIndex, sizeof(uint32), UT_UINT, NULL);
     utRegisterClass("Strip", 8, &rcRootData.usedStrip, &rcRootData.allocatedStrip,
-        &rcRootData.firstFreeStrip, 41, 4, allocStrip, destroyStrip);
+        &rcRootData.firstFreeStrip, 40, 4, allocStrip, destroyStrip);
     utRegisterField("X_min", &rcStrips.X_min, sizeof(int32), UT_INT, NULL);
     utRegisterField("X_max", &rcStrips.X_max, sizeof(int32), UT_INT, NULL);
     utRegisterField("Root", &rcStrips.Root, sizeof(rcRoot), UT_POINTER, "Root");
@@ -1508,7 +1398,7 @@ void rcDatabaseStart(void)
         getStripChunks, allocStripChunks, rcCompactStripChunks);
     utRegisterField("UsedChunk", &rcStrips.UsedChunk, sizeof(uint32), UT_UINT, NULL);
     utRegisterClass("ScreenAABB", 5, &rcRootData.usedScreenAABB, &rcRootData.allocatedScreenAABB,
-        &rcRootData.firstFreeScreenAABB, 51, 4, allocScreenAABB, destroyScreenAABB);
+        NULL, 65535, 4, allocScreenAABB, NULL);
     utRegisterField("X_min", &rcScreenAABBs.X_min, sizeof(int32), UT_INT, NULL);
     utRegisterField("X_max", &rcScreenAABBs.X_max, sizeof(int32), UT_INT, NULL);
     utRegisterField("Y_min", &rcScreenAABBs.Y_min, sizeof(int32), UT_INT, NULL);

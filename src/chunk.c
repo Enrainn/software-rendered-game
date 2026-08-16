@@ -1,6 +1,7 @@
 #include "chunk.h"
 #include <stdlib.h>
 #include <math.h>
+#include "rcdatabase.h"
 
 #if defined(__has_include)
 #  if __has_include("rcdatabase.h")
@@ -52,26 +53,26 @@ void chunks_datadraw_record_frame(const Chunk *chunks, int chunk_count, uint32_t
     rcScreenAABBFreeAll();
 
     rcRoot root = rcRootAlloc();
-    rcRootSetFrameIndex(root, frame_index);
+    rcRootSetFrame_index(root, frame_index);
 
     for (int i = 0; i < chunk_count; i++) {
         const Chunk *src = &chunks[i];
         rcChunk dst = rcChunkAlloc();
 
         rcChunkSetType(dst, src->type == CHUNK_COLORED ? RC_CHUNK_COLORED : RC_CHUNK_TEXTURED);
-        rcChunkSetDepthSortKey(dst, src->depth_sort_key);
+        rcChunkSetDepth_sort_key(dst, src->depth_sort_key);
         rcChunkSetX0(dst, src->verts[0].x);
         rcChunkSetY0(dst, src->verts[0].y);
         rcChunkSetZ0(dst, src->verts[0].z);
-        rcChunkSetInvW0(dst, src->verts[0].inv_w);
+        rcChunkSetInv_w0(dst, src->verts[0].inv_w);
         rcChunkSetX1(dst, src->verts[1].x);
         rcChunkSetY1(dst, src->verts[1].y);
         rcChunkSetZ1(dst, src->verts[1].z);
-        rcChunkSetInvW1(dst, src->verts[1].inv_w);
+        rcChunkSetInv_w1(dst, src->verts[1].inv_w);
         rcChunkSetX2(dst, src->verts[2].x);
         rcChunkSetY2(dst, src->verts[2].y);
         rcChunkSetZ2(dst, src->verts[2].z);
-        rcChunkSetInvW2(dst, src->verts[2].inv_w);
+        rcChunkSetInv_w2(dst, src->verts[2].inv_w);
 
         if (src->type == CHUNK_COLORED) {
             rcChunkSetColor(dst, src->colored.color);
@@ -84,10 +85,10 @@ void chunks_datadraw_record_frame(const Chunk *chunks, int chunk_count, uint32_t
 
         ScreenAABB bb = chunk_screen_aabb(src);
         rcScreenAABB bounds = rcScreenAABBAlloc();
-        rcScreenAABBSetXMin(bounds, bb.x_min);
-        rcScreenAABBSetXMax(bounds, bb.x_max);
-        rcScreenAABBSetYMin(bounds, bb.y_min);
-        rcScreenAABBSetYMax(bounds, bb.y_max);
+        rcScreenAABBSetX_min(bounds, bb.x_min);
+        rcScreenAABBSetX_max(bounds, bb.x_max);
+        rcScreenAABBSetY_min(bounds, bb.y_min);
+        rcScreenAABBSetY_max(bounds, bb.y_max);
         rcChunkInsertBoundsScreenAABB(dst, bounds);
 
         rcRootAppendChunk(root, dst);

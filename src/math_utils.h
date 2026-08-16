@@ -3,7 +3,9 @@
 
 #include <math.h>
 #include <float.h>
-
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 typedef struct { float x, y, z; } Vec3;
 typedef struct { float x, y, z, w; } Vec4;
 typedef struct { float x, y; } Vec2;

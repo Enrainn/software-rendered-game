@@ -2,7 +2,7 @@
 #include "display.h"
 #include <string.h>
 #include <math.h>
-
+#include <stdio.h>
 #define PLAYER_EYE_HEIGHT 1.0f
 
 Player *g_player = NULL;

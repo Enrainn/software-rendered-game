@@ -1,5 +1,6 @@
 #include "display.h"
 #include <SDL2/SDL.h>
+#include <stdio.h>
 
 uint32_t display_buffer[WINDOW_WIDTH * WINDOW_HEIGHT];
 float    zbuf[WINDOW_WIDTH * WINDOW_HEIGHT];
@@ -15,14 +16,14 @@ bool display_init(void) {
     }
 
     window = SDL_CreateWindow(
-        "Software Renderer",
+        "DD Software Renderer",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
         WINDOW_WIDTH, WINDOW_HEIGHT,
         0
     );
     if (!window) return false;
 
-    sdl_renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
+    sdl_renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
     if (!sdl_renderer) return false;
 
     framebuffer_texture = SDL_CreateTexture(

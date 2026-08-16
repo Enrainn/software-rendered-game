@@ -46,4 +46,8 @@ typedef struct {
 void       chunks_sort_front_to_back(Chunk *chunks, int count);
 ScreenAABB chunk_screen_aabb(const Chunk *chunk);
 
+void chunks_datadraw_start(void);
+void chunks_datadraw_record_frame(const Chunk *chunks, int chunk_count, uint32_t frame_index);
+void chunks_datadraw_stop(void);
+
 #endif // CHUNK_H

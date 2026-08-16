@@ -61,6 +61,10 @@ int main(int argc, char **argv)
         SRC_FOLDER"physics.c"
     );
 
+    if (nob_file_exists(SRC_FOLDER"rcdatabase.c")) {
+        nob_cmd_append(&cmd, SRC_FOLDER"rcdatabase.c");
+    }
+
     // Include path
     nob_cmd_append(&cmd, "-I"SRC_FOLDER);
 

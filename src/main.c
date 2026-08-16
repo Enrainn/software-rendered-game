@@ -64,6 +64,8 @@ int main(int argc, char *argv[]) {
     // 7. Arena allocator
     arena_init(&frame_arena, FRAME_ARENA_SIZE);
 
+    chunks_datadraw_start();
+
     // 8. Thread pool
     int num_cores = (int)sysconf(_SC_NPROCESSORS_ONLN);
     if (num_cores < 1) num_cores = 4;
@@ -177,6 +179,7 @@ int main(int argc, char *argv[]) {
     float fps = 0.0f;
     float fps_accum = 0.0f;
     int fps_frame_count = 0;
+    uint32_t frame_index = 0;
 
     while (running) {
         // --- TIMING ---
@@ -270,6 +273,7 @@ int main(int argc, char *argv[]) {
 
             // Sort front-to-back
             chunks_sort_front_to_back(chunks, chunk_count);
+            chunks_datadraw_record_frame(chunks, chunk_count, frame_index++);
 
             // --- 4. STRIP DISTRIBUTION ---
             strip_pool_distribute(&strip_pool, chunks, chunk_count);
@@ -306,6 +310,7 @@ int main(int argc, char *argv[]) {
 
     // Cleanup
     strip_pool_destroy(&strip_pool);
+    chunks_datadraw_stop();
     arena_free(&frame_arena);
     scene_destroy(&scene);
     display_destroy();

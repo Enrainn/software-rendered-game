@@ -1,0 +1,80 @@
+// DataDraw schema candidate for the renderer's per-frame chunk stream.
+//
+// Why Chunk: chunks are generated every frame, sorted, then assigned to strip
+// buckets.  That makes them a hot data set with repeated append, traversal,
+// sorting, and per-strip membership operations -- the kind of structure that can
+// benefit from DataDraw-generated storage and relationship helpers.
+
+module RenderChunks rc volatile
+
+// External C-side data types used by the existing renderer.  DataDraw treats
+// these as opaque values while generated accessors can still store them in the
+// database records.
+typedef Texture = "NULL"
+typedef Vec2 = "{0}"
+
+enum ChunkType CHUNK_
+    COLORED = 0
+    TEXTURED = 1
+
+class Root
+    uint frame_index
+
+class ScreenVertex
+    float x
+    float y
+    float z
+    float inv_w
+
+class Chunk
+    ChunkType type
+    float depth_sort_key
+
+    // Triangle vertices, expanded rather than modeled as a relationship so a
+    // compiled DataDraw version can keep the fixed-size hot path compact.
+    float x0
+    float y0
+    float z0
+    float inv_w0
+    float x1
+    float y1
+    float z1
+    float inv_w1
+    float x2
+    float y2
+    float z2
+    float inv_w2
+
+    // Payload for CHUNK_COLORED.
+    uint32 color
+
+    // Payload for CHUNK_TEXTURED.
+    Texture texture
+    Vec2 uv0
+    Vec2 uv1
+    Vec2 uv2
+
+class Strip
+    int x_min
+    int x_max
+
+class ScreenAABB
+    int x_min
+    int x_max
+    int y_min
+    int y_max
+
+// Frame owns the full append-only chunk stream.  An array relationship is a good
+// fit because the renderer produces a dense list and sorts/traverses it every
+// frame.
+relationship Root Chunk array
+
+// Strips reference the subset of chunks that overlap their column range.  This
+// mirrors the current strip buckets used by worker threads.
+relationship Root Strip array
+relationship Strip Chunk array
+
+// Optional cached bounds per chunk for bucketing/raster clipping experiments.
+// Pointer relationships are DataDraw's default relationship type; labels keep
+// the generated fields explicit without using an invalid trailing "pointer" type.
+relationship Chunk:cached ScreenAABB:bounds

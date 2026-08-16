@@ -10,10 +10,10 @@ module RenderChunks rc volatile
 // External C-side data types used by the existing renderer.  DataDraw treats
 // these as opaque values while generated accessors can still store them in the
 // database records.
-typedef TexturePtr = "NULL"
+typedef Texture = "NULL"
 typedef Vec2 = "{0}"
 
-enum ChunkType RC_CHUNK_
+enum ChunkType CHUNK_
     COLORED = 0
     TEXTURED = 1
 
@@ -49,7 +49,7 @@ class Chunk
     uint32 color
 
     // Payload for CHUNK_TEXTURED.
-    TexturePtr texture
+    Texture texture
     Vec2 uv0
     Vec2 uv1
     Vec2 uv2

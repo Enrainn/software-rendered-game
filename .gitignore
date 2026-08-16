@@ -1,5 +1,6 @@
 build/
 assets/
 nob
+nob.exe
 nob.old
 .DS_Store
